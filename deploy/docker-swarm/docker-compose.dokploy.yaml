@@ -116,7 +116,7 @@ services:
     command:
       - --config=/root/config/prometheus.yml
     ports:
-      - "18080:8080"
+      - "13080:8080"
     volumes:
       - sqlite:/var/lib/signoz/
     configs:
