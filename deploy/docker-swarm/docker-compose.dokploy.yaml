@@ -82,7 +82,7 @@ services:
       restart_policy:
         condition: on-failure
     volumes:
-      - ./common/clickhouse/user_scripts:/var/lib/clickhouse/user_scripts/
+      - ../common/clickhouse/user_scripts:/var/lib/clickhouse/user_scripts/
 
   zookeeper-1:
     <<: *zookeeper-defaults
@@ -191,16 +191,16 @@ volumes:
 
 configs:
   clickhouse-config:
-    file: ./common/clickhouse/config.xml
+    file: ../common/clickhouse/config.xml
   clickhouse-users:
-    file: ./common/clickhouse/users.xml
+    file: ../common/clickhouse/users.xml
   clickhouse-custom-function:
-    file: ./common/clickhouse/custom-function.xml
+    file: ../common/clickhouse/custom-function.xml
   clickhouse-cluster:
-    file: ./common/clickhouse/cluster.xml
+    file: ../common/clickhouse/cluster.xml
   signoz-prometheus-config:
-    file: ./common/signoz/prometheus.yml
+    file: ../common/signoz/prometheus.yml
   otel-collector-config:
-    file: ./docker-swarm/otel-collector-config.yaml
+    file: ./otel-collector-config.yaml
   otel-manager-config:
-    file: ./common/signoz/otel-collector-opamp-config.yaml
+    file: ../common/signoz/otel-collector-opamp-config.yaml
