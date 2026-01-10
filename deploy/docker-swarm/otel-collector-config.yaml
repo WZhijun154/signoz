@@ -10,8 +10,12 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+        tls:
+          insecure: false
       http:
         endpoint: 0.0.0.0:4318
+        tls:
+          insecure: false
   prometheus:
     config:
       global:
