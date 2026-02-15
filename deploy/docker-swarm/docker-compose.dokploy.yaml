@@ -201,6 +201,7 @@ configs:
   signoz-prometheus-config:
     file: ../common/signoz/prometheus.yml
   otel-collector-config:
+    name: otel-collector-config-v2
     file: ./otel-collector-config.yaml
   otel-manager-config:
     file: ../common/signoz/otel-collector-opamp-config.yaml
