@@ -16,6 +16,7 @@ receivers:
           allowed_origins:
             - http://100.67.27.85:3000  # URL of your Frontend application
             - https://trendhunt.app
+            - https://9bee-38-207-137-42.ngrok-free.app
   prometheus:
     config:
       global:
