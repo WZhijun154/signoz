@@ -31,9 +31,10 @@ receivers:
         - job_name: flower
           scrape_interval: 5s
           metrics_path: /metrics
+          scheme: https
           static_configs:
             - targets:
-                - flower:5555
+                - flower.trendhunt.app
 processors:
   batch:
     send_batch_size: 10000
