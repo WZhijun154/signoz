@@ -112,26 +112,17 @@ services:
 
   signoz:
     <<: *db-depend
-    image: signoz/signoz:v0.106.0
-    command:
-      - --config=/root/config/prometheus.yml
+    image: signoz/signoz:v0.115.0
     ports:
       - "13080:8080"
     volumes:
       - sqlite:/var/lib/signoz/
-    configs:
-      - source: signoz-prometheus-config
-        target: /root/config/prometheus.yml
     environment:
       - SIGNOZ_ALERTMANAGER_PROVIDER=signoz
       - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://clickhouse:9000
       - SIGNOZ_SQLSTORE_SQLITE_PATH=/var/lib/signoz/signoz.db
-      - DASHBOARDS_PATH=/root/config/dashboards
-      - STORAGE=clickhouse
-      - GODEBUG=netdns=go
-      - TELEMETRY_ENABLED=true
+      - SIGNOZ_TOKENIZER_JWT_SECRET=secret
       - DEPLOYMENT_TYPE=docker-swarm
-      - DOT_METRICS_ENABLED=true
     healthcheck:
       test:
         - CMD
@@ -145,12 +136,13 @@ services:
 
   otel-collector:
     <<: *db-depend
-    image: signoz/signoz-otel-collector:v0.129.12
+    image: signoz/signoz-otel-collector:v0.144.2
+    entrypoint:
+      - /bin/sh
     command:
-      - --config=/etc/otel-collector-config.yaml
-      - --manager-config=/etc/manager-config.yaml
-      - --copy-path=/var/tmp/collector-config.yaml
-      - --feature-gates=-pkg.translator.prometheus.NormalizeName
+      - -c
+      - |
+        /signoz-otel-collector migrate sync check && /signoz-otel-collector --config=/etc/otel-collector-config.yaml --manager-config=/etc/manager-config.yaml --copy-path=/var/tmp/collector-config.yaml
     configs:
       - source: otel-collector-config
         target: /etc/otel-collector-config.yaml
@@ -159,6 +151,10 @@ services:
     environment:
       - OTEL_RESOURCE_ATTRIBUTES=host.name={{.Node.Hostname}},os.type={{.Node.Platform.OS}}
       - LOW_CARDINAL_EXCEPTION_GROUPING=false
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
     ports:
       - "14317:4317"
       - "14318:4318"
@@ -167,17 +163,24 @@ services:
         condition: on-failure
       replicas: 1
 
-  schema-migrator:
-    <<: *common
-    image: signoz/signoz-schema-migrator:v0.129.12
+  telemetrystore-migrator:
+    <<: *db-depend
+    image: signoz/signoz-otel-collector:v0.144.2
+    environment:
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://clickhouse:9000
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER=cluster
+      - SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION=true
+      - SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
+    entrypoint:
+      - /bin/sh
+    command:
+      - -c
+      - |
+        /signoz-otel-collector migrate bootstrap && /signoz-otel-collector migrate sync up && /signoz-otel-collector migrate async up
     deploy:
       restart_policy:
         condition: on-failure
         delay: 5s
-    entrypoint: sh
-    command:
-      - -c
-      - "/signoz-schema-migrator sync --dsn=tcp://clickhouse:9000 --up= && /signoz-schema-migrator async --dsn=tcp://clickhouse:9000 --up="
 
 networks:
   dokploy-network:
@@ -198,10 +201,8 @@ configs:
     file: ../common/clickhouse/custom-function.xml
   clickhouse-cluster:
     file: ../common/clickhouse/cluster.xml
-  signoz-prometheus-config:
-    file: ../common/signoz/prometheus.yml
   otel-collector-config:
-    name: otel-collector-config-v6
+    name: otel-collector-config-v7
     file: ./otel-collector-config.yaml
   otel-manager-config:
     file: ../common/signoz/otel-collector-opamp-config.yaml
